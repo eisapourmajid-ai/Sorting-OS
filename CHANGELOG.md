@@ -10,8 +10,14 @@
 - هستهٔ چهارلایهٔ `desktop/sorting_os/` (ADR-0001): `core.py` (سیاست پول و تقویم شمسی آفلاین)،
   `db.py` (تراکنش/مهاجرت/audit)، `migrations.py` (MIGRATION_1 و MIGRATION_2)، `services/` (۱۳ سرویس
   دامنه) و `ui/app.py` (پوستهٔ فارسی/RTL). `[Prompt 05..24]`
-- مجموعهٔ آزمون headless در `desktop/tests/`: ۱۲۳ آزمون (۱۷ پایه + ۱۰۶ جدید) شامل تست‌های invariant
-  مالی/انبار، import/export، بانک/چک، امنیت، backup/restore، گزارش‌ها و دورهٔ مالی. `[Prompt 28]`
+- مجموعهٔ آزمون headless در `desktop/tests/`: **۱۹۰ آزمون** (۱۷ پایه + ۱۷۳ جدید) شامل تست‌های invariant
+  مالی/انبار، import/export، بانک/چک، امنیت، backup/restore، گزارش‌ها، دورهٔ مالی، property
+  (دادهٔ تصادفی قطعی)، سناریوهای پذیرش A–H، کارایی و آفلاین. `[Prompt 28..30]`
+- `desktop/sorting_os/services/migration.py` — مهاجرت دادهٔ تاریخی با واحد صریح، preview،
+  خطای ردیف، reconciliation و idempotency. `[Prompt 32]`
+- `scripts/build_release.py` — ساخت بستهٔ پرتابل نسخه‌دار با SBOM، release notes و SHA256. `[Prompt 31]`
+- `docs/release/UAT_PLAN_FA.md`، `reports/RELEASE_CANDIDATE_REPORT.md` (توصیهٔ NO-GO) و
+  `docs/HANDOVER_FA.md`. `[Prompt 33..35]`
 - `docs/architecture/ADR-0001-platform-and-runtime.md` و `docs/architecture/platform-compatibility-matrix.md`
   (ماتریس سازگاری با وضعیت واقعی هر قلم). `[Prompt 02]`
 - `docs/requirements-traceability.csv` (۸۴ نیازمندی با وضعیت و سطح شواهد) و `docs/open-decisions.md`. `[Prompt 03]`
@@ -45,6 +51,7 @@
 ### Known limitations / Not verified
 
 - رابط گرافیکی: `NOT RUN` در این محیط (tkinter نصب نیست).
+- بستهٔ EXE و نصب‌کننده: `NOT RUN` (PyInstaller/NSIS در دسترس نیست) — فقط bundle پرتابل ساخته شد.
 - Windows 7 SP1 x64: `NOT VERIFIED ON TARGET OS`.
 - ساخت EXE/نصب‌کننده: `NOT RUN`.
 - تصمیم‌های تجاری باز (مدل کسب‌وکار، درصد صافی، بهای تمام‌شده، کدینگ نهایی، سال مالی،

@@ -2,7 +2,7 @@
 
 نرم‌افزار دسکتاپ محلی برای عملیات سورتینگ و بسته‌بندی میوه، باسکول، محموله، موجودی، تسویه و حسابداری. رابط کاربری فارسی/RTL و اجرای آفلاین، اصول هدف هستند.
 
-> **وضعیت صادقانه (به‌روزرسانی ۱۴۰۵/۰۷/۲۷ — 2026-10-19):** هستهٔ دامنه/مالی جدید در `desktop/sorting_os/` پیاده‌سازی شده و با ۱۲۳ آزمون headless پوشش داده شده است (۱۷ آزمون پایهٔ قبلی + ۱۰۶ آزمون جدید). **اما:** رابط گرافیکی در این محیط اجرا نشده (tkinter نصب نیست ⇒ `NOT RUN`)، روی Windows 7 SP1 x64 آزموده نشده (`NOT VERIFIED ON TARGET OS`)، ساخت EXE/نصب‌کننده انجام نشده (`NOT RUN`)، و تصمیم‌های تجاری کلیدی (مدل کسب‌وکار، درصد صافی، بهای تمام‌شده، کدینگ نهایی، سال مالی) هنوز «باز» هستند و در `docs/open-decisions.md` فهرست شده‌اند. هیچ‌یک از این موارد نباید «تأییدشده» تلقی شود.
+> **وضعیت صادقانه (به‌روزرسانی ۱۴۰۵/۰۷/۲۷ — 2026-10-19):** هستهٔ دامنه/مالی جدید در `desktop/sorting_os/` پیاده‌سازی شده و با ۱۹۰ آزمون headless پوشش داده شده است (۱۷ آزمون پایهٔ قبلی + ۱۷۳ آزمون جدید). **اما:** رابط گرافیکی در این محیط اجرا نشده (tkinter نصب نیست ⇒ `NOT RUN`)، روی Windows 7 SP1 x64 آزموده نشده (`NOT VERIFIED ON TARGET OS`)، ساخت EXE/نصب‌کننده انجام نشده (`NOT RUN`)، و تصمیم‌های تجاری کلیدی (مدل کسب‌وکار، درصد صافی، بهای تمام‌شده، کدینگ نهایی، سال مالی) هنوز «باز» هستند و در `docs/open-decisions.md` فهرست شده‌اند. هیچ‌یک از این موارد نباید «تأییدشده» تلقی شود.
 
 ## شروع سریع
 
@@ -23,14 +23,16 @@ desktop/
     db.py                 اتصال، تراکنش، migration runner، audit، settings
     migrations.py         MIGRATION_1 (legacy) و MIGRATION_2 (دامنه/مالی/بانک/امنیت/چاپ)
     services/             دامنه و سرویس‌ها (parties, catalog, operations, documents, ledger,
-                          settlement, banking, auth, exchange, reporting, backup, printing, periods)
+                          settlement, banking, auth, exchange, reporting, backup, printing,
+                          periods, migration)
     ui/                   پوستهٔ Tkinter فارسی/RTL (Prompt 24)
-  tests/                  ۱۲۳ آزمون headless (بدون tkinter)
+  tests/                  ۱۹۰ آزمون headless (بدون tkinter)
 docs/                     اسناد مرجع، ADRها، ردیابی نیازمندی و تصمیم‌های باز
 prompts/                  ۳۶ پرامپت مرحله‌ای 00–35
 contracts/                گیت‌ها، قالب گزارش عامل، ردیابی نیازمندی و قیود صحت داده
 reports/                  گزارش شواهد هر مرحله (ممیزی، خط مبنا، گزارش پایان پرامپت‌ها)
 scripts/check-doc-links   بررسی لینک‌های محلی و مسیرهای بحرانی اسناد
+scripts/build_release.py   ساخت بستهٔ پرتابل + SBOM + checksum (EXE: فقط با --exe)
 reference-inputs/         مراجع اولیه و نسخه‌های قبلی؛ نباید بر اسناد canonical مالی جدید غلبه کنند
 ```
 
@@ -84,6 +86,6 @@ python3 scripts/check-doc-links .
 ## آزمون و ادعای سازگاری
 
 - خط مبنا: ۱۷ آزمون پایهٔ MVP (پاس‌شده).
-- وضعیت فعلی: **۱۲۳ آزمون** با `python -m unittest discover -s tests` (از پوشهٔ `desktop`) — اجرای واقعی و خروجی در `reports/`.
+- وضعیت فعلی: **۱۹۰ آزمون** با `python -m unittest discover -s tests` (از پوشهٔ `desktop`) — اجرای واقعی و خروجی در `reports/`.
 - پاس‌شدن آزمون‌های واحد به معنای تأیید UI، نصب، چاپگر یا Windows 7 نیست. هیچ وضعیت `VERIFIED ON TARGET` بدون مشاهدهٔ مستقیم روی سیستم هدف ثبت نشود.
 - گزارش‌های شواهد هر مرحله در `reports/` نگهداری می‌شود (`INITIAL_REPOSITORY_AUDIT.md`، `BASELINE_EVIDENCE.md`، `PROMPT_*.md`).
