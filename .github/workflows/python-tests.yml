@@ -25,3 +25,5 @@ jobs:
       - name: Unit tests
         working-directory: desktop
         run: python -m unittest discover -s tests -v
+      - name: Documentation link and path check
+        run: python3 scripts/check-doc-links .

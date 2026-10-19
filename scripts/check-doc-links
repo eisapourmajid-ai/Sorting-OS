@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""بررسی لینک‌های محلی اسناد Markdown (Prompt 04 — repository hygiene).
+
+این ابزار هیچ فایل یا سند مرجعی را حذف/ویرایش نمی‌کند؛ فقط گزارش می‌دهد که کدام لینک محلی
+(نسبی یا ریشه‌ای داخل مخزن) resolve نمی‌شود. مسیرها به‌صورت case-sensitive بررسی می‌شوند،
+چون ویندوز case-insensitive است ولی مخزن باید در لینوکس هم درست کار کند.
+
+خروجی: یک خط به‌ازای هر لینک شکسته به شکل `BROKEN <file>:<line> -> <target>`.
+خروج با کد ۱ اگر لینک شکسته وجود داشته باشد.
+
+اجرا:  python3 scripts/check-doc-links [root_dir]
+"""
+from __future__ import annotations
+
+import os
+import re
+import sys
+
+LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
+SKIP_DIRS = {".git", "node_modules", "build", "dist", "__pycache__", ".venv", "venv"}
+# مسیرهایی که عمداً بیرون از مخزن/در دسترس نیستند
+REMOTE_PREFIXES = ("http://", "https://", "mailto:", "tel:", "#", "data:")
+
+
+def iter_markdown(root):
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
+        for name in filenames:
+            if name.lower().endswith(".md"):
+                yield os.path.join(dirpath, name)
+
+
+def resolve(target, base_dir, root):
+    target = target.strip().strip("<>")
+    if not target or target.startswith(REMOTE_PREFIXES):
+        return None
+    # حذف fragment و query
+    target = target.split("#", 1)[0].split("?", 1)[0]
+    if not target:
+        return None
+    target = target.replace("%20", " ")
+    if target.startswith("/"):
+        candidate = os.path.join(root, target.lstrip("/"))
+    else:
+        candidate = os.path.join(base_dir, target)
+    candidate = os.path.normpath(candidate)
+    if os.path.exists(candidate):
+        return candidate
+    return False
+
+
+def check_required_paths(root):
+    """بررسی مسیرهای بحرانی مخزن (case-sensitive) از scripts/required-paths.txt."""
+    manifest = os.path.join(root, "scripts", "required-paths.txt")
+    if not os.path.isfile(manifest):
+        return [], 0
+    missing = []
+    count = 0
+    with open(manifest, encoding="utf-8") as handle:
+        for line in handle:
+            entry = line.strip()
+            if not entry or entry.startswith("#"):
+                continue
+            count += 1
+            if not os.path.exists(os.path.join(root, entry)):
+                missing.append("MISSING %s" % entry)
+    return missing, count
+
+
+def main(argv):
+    root = os.path.abspath(argv[1] if len(argv) > 1 else os.getcwd())
+    broken = []
+    checked = 0
+    for path in iter_markdown(root):
+        rel = os.path.relpath(path, root)
+        with open(path, encoding="utf-8") as handle:
+            for number, line in enumerate(handle, start=1):
+                for match in LINK_RE.finditer(line):
+                    raw = match.group(1).strip()
+                    if raw.startswith("<") and raw.endswith(">"):
+                        raw = raw[1:-1]
+                    # لینک‌هایی که عنوان دارند: "path \"title\""
+                    if " " in raw and not raw.startswith(("http", "/")):
+                        raw = raw.split(" ", 1)[0]
+                    checked += 1
+                    result = resolve(raw, os.path.dirname(path), root)
+                    if result is False:
+                        broken.append("BROKEN %s:%d -> %s" % (rel, number, raw))
+    missing, path_count = check_required_paths(root)
+    for item in broken:
+        print(item)
+    for item in missing:
+        print(item)
+    print("checked %d local links and %d required paths in %s: %d broken links, %d missing paths"
+          % (checked, path_count, root, len(broken), len(missing)))
+    return 1 if (broken or missing) else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

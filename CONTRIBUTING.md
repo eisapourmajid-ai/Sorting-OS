@@ -25,4 +25,24 @@ PR کوچک و متمرکز باشد و شامل شناسه نیازمندی، �
 
 ## ثبت تغییرات
 
-تغییر رفتار کاربر، schema، فرمول مالی یا وابستگی باید در مستند مناسب و `CHANGELOG.md` (پس از ایجاد) ثبت شود. تصمیم معماری مهم باید یک ADR داشته باشد.
+تغییر رفتار کاربر، schema، فرمول مالی یا وابستگی باید در مستند مناسب و `CHANGELOG.md` ثبت شود. تصمیم معماری مهم باید یک ADR داشته باشد.
+
+## گیت‌های محلی پیش از commit
+
+این سه فرمان باید پیش از هر commit اجرا و خروجی واقعی آن‌ها ثبت شود:
+
+```bash
+cd desktop && python -m unittest discover -s tests -v   # همهٔ آزمون‌ها
+cd .. && python3 scripts/check-doc-links .                # لینک‌ها و مسیرهای اسناد
+python3 -m py_compile desktop/main.py desktop/database.py desktop/accounting_core.py
+```
+
+اگر آزمونی به دلیل محیط قابل اجرا نبود (مثلاً GUI بدون tkinter)، صریحاً `NOT RUN` ثبت کنید و موفقیت
+نسازید. پاس‌شدن آزمون واحد به‌معنای «سازگار با Windows 7» یا «تأیید روی سیستم هدف» نیست.
+
+## انضباط مرحله‌ای (اجرای پرامپت‌ها)
+
+- هر پرامپت یک شاخهٔ feature و commitهای معنادار دارد؛ `main` فقط با PR/بازبینی به‌روز می‌شود.
+- یک مرحله = یک گزارش در `reports/PROMPT_XX_*.md` مطابق `contracts/AGENT_REPORT_TEMPLATE_FA.md`.
+- شناسهٔ نیازمندی‌های پوشش‌داده‌شده در `docs/requirements-traceability.csv` به‌روز شود.
+- تصمیم جدید در `docs/decision-log.md` ثبت و در `docs/open-decisions.md` اثر آن مشخص شود.
