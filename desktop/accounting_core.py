@@ -8,10 +8,32 @@ Python 3.8+; standard library only.
 """
 from __future__ import annotations
 
+import os
 import re
 import sqlite3
+import sys
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
+
+try:  # canonical money/calendar primitives live in the application package
+    from sorting_os.core import (  # noqa: F401
+        BASE_MONEY_UNIT,
+        format_money,
+        normalize_digits,
+        parse_amount_to_rial,
+        to_rial,
+        to_rial_strict,
+    )
+except ImportError:  # pragma: no cover - direct execution fallback
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from sorting_os.core import (  # noqa: F401
+        BASE_MONEY_UNIT,
+        format_money,
+        normalize_digits,
+        parse_amount_to_rial,
+        to_rial,
+        to_rial_strict,
+    )
 
 SCHEMA_VERSION = 1
 
@@ -43,75 +65,13 @@ SIDES = {"debit", "credit"}
 FLOW_CLASSES = {"operating", "investing", "financing", "other"}
 
 
-def normalize_digits(value):
-    """Convert Persian/Arabic digits and common separators to stable ASCII text."""
-    if value is None:
-        return ""
-    text = str(value).strip()
-    table = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
-    return text.translate(table)
-
-
 def _integer_rial(value, field="مبلغ ریالی"):
-    """Accept only integral numeric values; never silently truncate money."""
-    if isinstance(value, bool):
-        raise ValueError("%s باید عدد صحیح ریال باشد." % field)
-    try:
-        amount = Decimal(str(value).strip())
-    except (InvalidOperation, AttributeError, ValueError):
-        raise ValueError("%s معتبر نیست." % field)
-    if not amount.is_finite() or amount != amount.to_integral_value():
-        raise ValueError("%s باید عدد صحیح ریال باشد؛ گردکردن خودکار ممنوع است." % field)
-    return int(amount)
+    """Accept only integral numeric values; never silently truncate money.
 
-
-def parse_amount_to_rial(raw, unit="ریال"):
-    """Parse a non-negative amount and return integer rials without float math.
-
-    Supported units: ریال / rial / تومان / toman. Decimal input is accepted only
-    when conversion yields a whole rial; for example 12.5 toman = 125 rials.
+    Delegates to the canonical money policy in ``sorting_os.core`` so the
+    ledger, the UI and the import engine share one implementation.
     """
-    text = normalize_digits(raw).replace("٬", "").replace(",", "").replace("،", "")
-    text = re.sub(r"\s+", "", text)
-    for token in ("ریال", "ريال", "تومان", "rial", "rials", "toman", "tomans"):
-        text = text.replace(token, "")
-    if not text:
-        raise ValueError("مبلغ خالی است.")
-    try:
-        amount = Decimal(text)
-    except InvalidOperation:
-        raise ValueError("قالب مبلغ معتبر نیست.")
-    if not amount.is_finite() or amount < 0:
-        raise ValueError("مبلغ باید عددی متناهی و غیرمنفی باشد.")
-    u = normalize_digits(unit).strip().lower()
-    if u in ("تومان", "tomān", "toman", "tomans"):
-        amount *= Decimal(10)
-    elif u not in ("ریال", "ريال", "rial", "rials"):
-        raise ValueError("واحد ورودی باید ریال یا تومان باشد.")
-    if amount != amount.to_integral_value():
-        raise ValueError("مبلغ پس از تبدیل باید به ریال صحیح برسد؛ مقدار اعشاریِ کمتر از یک ریال پذیرفته نیست.")
-    return int(amount)
-
-
-def format_money(amount_rial, unit="تومان", local_digits=False):
-    """Render integer rials exactly in a requested display unit, with no rounding."""
-    n = _integer_rial(amount_rial)
-    u = normalize_digits(unit).strip().lower()
-    if u in ("ریال", "ريال", "rial", "rials"):
-        divisor, label = Decimal(1), "ریال"
-    elif u in ("تومان", "toman", "tomans"):
-        divisor, label = Decimal(10), "تومان"
-    elif u in ("میلیون تومان", "million toman", "million tomans"):
-        divisor, label = Decimal(10000000), "میلیون تومان"
-    else:
-        raise ValueError("واحد نمایش باید ریال، تومان یا میلیون تومان باشد.")
-    value = Decimal(n) / divisor
-    rendered = format(value, ",f")
-    if "." in rendered:
-        rendered = rendered.rstrip("0").rstrip(".")
-    if local_digits:
-        rendered = rendered.translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))
-    return rendered + " " + label
+    return to_rial_strict(value, field, allow_negative=True)
 
 
 def _iso_date(value, field="تاریخ"):
@@ -133,6 +93,77 @@ class _ClosingConnection(sqlite3.Connection):
             self.close()
 
 
+ACCOUNTING_SCHEMA_SQL = """
+    CREATE TABLE IF NOT EXISTS accounting_meta (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS accounting_accounts (
+        code TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL CHECK(category IN ('asset','liability','equity','revenue','expense')),
+        normal_side TEXT NOT NULL CHECK(normal_side IN ('debit','credit')),
+        cash_flow_class TEXT NOT NULL DEFAULT 'operating'
+            CHECK(cash_flow_class IN ('operating','investing','financing','other')),
+        is_cash INTEGER NOT NULL DEFAULT 0 CHECK(is_cash IN (0,1)),
+        is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1)),
+        created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS journal_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entry_no TEXT NOT NULL UNIQUE,
+        entry_date TEXT NOT NULL,
+        description TEXT NOT NULL,
+        source_type TEXT,
+        source_id TEXT,
+        status TEXT NOT NULL DEFAULT 'posted' CHECK(status='posted'),
+        actor TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        reverses_entry_id INTEGER UNIQUE REFERENCES journal_entries(id),
+        UNIQUE(source_type, source_id)
+    );
+    CREATE TABLE IF NOT EXISTS journal_lines (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entry_id INTEGER NOT NULL REFERENCES journal_entries(id),
+        line_no INTEGER NOT NULL,
+        account_code TEXT NOT NULL REFERENCES accounting_accounts(code),
+        description TEXT NOT NULL DEFAULT '',
+        debit_rial INTEGER NOT NULL DEFAULT 0 CHECK(debit_rial >= 0),
+        credit_rial INTEGER NOT NULL DEFAULT 0 CHECK(credit_rial >= 0),
+        party_ref TEXT,
+        cost_center TEXT,
+        CHECK ((debit_rial > 0 AND credit_rial = 0) OR
+               (credit_rial > 0 AND debit_rial = 0)),
+        UNIQUE(entry_id, line_no)
+    );
+    CREATE INDEX IF NOT EXISTS idx_journal_date ON journal_entries(entry_date, id);
+    CREATE INDEX IF NOT EXISTS idx_lines_account ON journal_lines(account_code, entry_id);
+    CREATE INDEX IF NOT EXISTS idx_lines_party ON journal_lines(party_ref, entry_id);
+"""
+
+
+def initialize_schema(db_path):
+    """Create the accounting tables/chart of accounts if they do not exist.
+
+    Exposed so the versioned migration runner can guarantee that a database
+    created by the operational layer always has a consistent ledger schema.
+    """
+    con = sqlite3.connect(db_path, timeout=15, factory=_ClosingConnection)
+    try:
+        con.execute("PRAGMA foreign_keys=ON")
+        con.executescript(ACCOUNTING_SCHEMA_SQL)
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        for account in DEFAULT_ACCOUNTS:
+            con.execute("""INSERT OR IGNORE INTO accounting_accounts
+                (code,name,category,normal_side,cash_flow_class,is_cash,is_active,created_at)
+                VALUES(?,?,?,?,?,?,1,?)""", account + (now,))
+        con.execute("INSERT OR IGNORE INTO accounting_meta(key,value) VALUES('schema_version',?)", (str(SCHEMA_VERSION),))
+        con.execute("INSERT OR IGNORE INTO accounting_meta(key,value) VALUES('money_base_unit','IRR')")
+        con.commit()
+    finally:
+        con.close()
+
+
 class AccountingBook:
     """SQLite-backed append-only posted journal and financial reporting service."""
 
@@ -148,61 +179,7 @@ class AccountingBook:
         return con
 
     def _initialize(self):
-        with self.connect() as con:
-            con.executescript("""
-                CREATE TABLE IF NOT EXISTS accounting_meta (
-                    key TEXT PRIMARY KEY,
-                    value TEXT NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS accounting_accounts (
-                    code TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    category TEXT NOT NULL CHECK(category IN ('asset','liability','equity','revenue','expense')),
-                    normal_side TEXT NOT NULL CHECK(normal_side IN ('debit','credit')),
-                    cash_flow_class TEXT NOT NULL DEFAULT 'operating'
-                        CHECK(cash_flow_class IN ('operating','investing','financing','other')),
-                    is_cash INTEGER NOT NULL DEFAULT 0 CHECK(is_cash IN (0,1)),
-                    is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1)),
-                    created_at TEXT NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS journal_entries (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    entry_no TEXT NOT NULL UNIQUE,
-                    entry_date TEXT NOT NULL,
-                    description TEXT NOT NULL,
-                    source_type TEXT,
-                    source_id TEXT,
-                    status TEXT NOT NULL DEFAULT 'posted' CHECK(status='posted'),
-                    actor TEXT NOT NULL,
-                    created_at TEXT NOT NULL,
-                    reverses_entry_id INTEGER UNIQUE REFERENCES journal_entries(id),
-                    UNIQUE(source_type, source_id)
-                );
-                CREATE TABLE IF NOT EXISTS journal_lines (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    entry_id INTEGER NOT NULL REFERENCES journal_entries(id),
-                    line_no INTEGER NOT NULL,
-                    account_code TEXT NOT NULL REFERENCES accounting_accounts(code),
-                    description TEXT NOT NULL DEFAULT '',
-                    debit_rial INTEGER NOT NULL DEFAULT 0 CHECK(debit_rial >= 0),
-                    credit_rial INTEGER NOT NULL DEFAULT 0 CHECK(credit_rial >= 0),
-                    party_ref TEXT,
-                    cost_center TEXT,
-                    CHECK ((debit_rial > 0 AND credit_rial = 0) OR
-                           (credit_rial > 0 AND debit_rial = 0)),
-                    UNIQUE(entry_id, line_no)
-                );
-                CREATE INDEX IF NOT EXISTS idx_journal_date ON journal_entries(entry_date, id);
-                CREATE INDEX IF NOT EXISTS idx_lines_account ON journal_lines(account_code, entry_id);
-                CREATE INDEX IF NOT EXISTS idx_lines_party ON journal_lines(party_ref, entry_id);
-            """)
-            now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-            for account in DEFAULT_ACCOUNTS:
-                con.execute("""INSERT OR IGNORE INTO accounting_accounts
-                    (code,name,category,normal_side,cash_flow_class,is_cash,is_active,created_at)
-                    VALUES(?,?,?,?,?,?,1,?)""", account + (now,))
-            con.execute("INSERT OR IGNORE INTO accounting_meta(key,value) VALUES('schema_version',?)", (str(SCHEMA_VERSION),))
-            con.execute("INSERT OR IGNORE INTO accounting_meta(key,value) VALUES('money_base_unit','IRR')")
+        initialize_schema(self.path)
 
     def list_accounts(self, active_only=True):
         sql = "SELECT * FROM accounting_accounts"
