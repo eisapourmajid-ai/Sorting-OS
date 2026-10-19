@@ -12,7 +12,7 @@
 |---|---|
 | تست‌های headless | **۲۰۹ تست، همه PASS** (۱۷ legacy + ۱۹۲ جدید) — به‌روزرسانی 2026-10-19 پس از DEC-017 |
 | آفلاین‌بودن | PASS با آزمون (تحلیل ایستا + جریان کامل با `socket` مسدود) |
-| بستهٔ portable | PASS — `dist/SORTING-OS-0.2.0.zip` با SBOM و SHA256 |
+| بستهٔ portable | PASS — `dist/SORTING-OS-0.2.0.zip` با SBOM و SHA256 (بازساخت 2026-10-19 پس از DEC-017: sha256 `9868e26129dfb378af81dccb940a6face97fba8e085d6c69632983da3ea29edd`، ۳۰۲٬۵۴۳ بایت؛ `EXE: NOT RUN`) |
 | EXE (PyInstaller) | **NOT RUN** — PyInstaller در این محیط نصب نیست |
 | نصب‌کننده (NSIS/Inno) | **NOT RUN** — ابزار موجود نیست |
 | Windows 7 SP1 x64 | **NOT VERIFIED ON TARGET OS** |
@@ -47,7 +47,7 @@
 | Gate | وضعیت | توضیح |
 |---|---|---|
 | A — Repository & baseline | **PASS** | ممیزی، خط مبنا، چک لینک اسناد، شواهد در `reports/` |
-| B — Architecture & decisions | **PARTIAL** | ADR-0001 پذیرفته شده؛ ۱۶ تصمیم تجاری باز و مسدودکنندهٔ مسیرهای وابسته |
+| B — Architecture & decisions | **PARTIAL** | ADR-0001 و DEC-017 (تخصیص درصد صافی) پذیرفته شده‌اند؛ ۱۷ تصمیم تجاری باز و مسدودکنندهٔ مسیرهای وابسته (از جمله معنای عددی درصد صافی، DEC-003) |
 | C — Operational vertical slice | **TESTED (UI NOT RUN)** | محموله/توزین/سورتینگ/انبار/ارسال با آزمون؛ UI اجرا نشده |
 | D — Finance | **PARTED/PARTIAL** | دفترکل، posting، صافی، بانک/چک با آزمون؛ مدل کسب‌وکار و کدینگ نهایی تأیید نشده |
 | E — Import/export/print | **PARTIAL** | preview/idempotency/ادغام امن با آزمون؛ چاپ فیزیکی و A4/A5 آزموده نشده |

@@ -18,6 +18,10 @@
 - Commands actually run:
   - `python3 scripts/build_release.py` → bundle در `dist/SORTING-OS-0.2.0/`، آرشیو ZIP با
     `sha256 = 8691099397aa712cac3edd3bafbcabe9173109be97baa390d4df461897c8f183`، اندازهٔ ۲۸۵٬۳۶۷ بایت،
+
+> **به‌روزرسانی 2026-10-19 (پس از DEC-017):** بسته پس از افزودن تخصیص درصد صافی دوباره ساخته شد؛
+> checksum جدید `9868e26129dfb378af81dccb940a6face97fba8e085d6c69632983da3ea29edd` با اندازهٔ ۳۰۲٬۵۴۳ بایت
+> (همچنان `EXE: NOT RUN`). مقدار بالا مربوط به زمان اجرای Prompt 31 است.
     و پیام `EXE: NOT RUN — use --exe on a machine that has PyInstaller installed`.
   - `cd desktop && python3 -m unittest discover -s tests` → ۱۹۰ تست، OK
 - Test results: passed 190 / failed 0 / not run: EXE، نصب‌کننده، نصب روی سیستم تمیز
