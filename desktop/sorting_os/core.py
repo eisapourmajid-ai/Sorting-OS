@@ -107,6 +107,9 @@ UNIT_MULTIPLIERS = {
     "million_toman": Decimal(RIAL_PER_TOMAN) * Decimal(1000000),
 }
 
+#: canonical (Persian) label of every supported unit
+UNIT_LABELS = {"rial": "ریال", "toman": "تومان", "million_toman": "میلیون تومان"}
+
 
 def detect_unit(text):
     """Return the unit word carried by a value such as ``1250 تومان``."""
@@ -151,7 +154,7 @@ def to_rial(value, unit="ریال", field="مبلغ"):
     u = _normalize_unit(unit)
     if embedded:
         default = _normalize_unit("ریال")
-        if u not in (default, "rial", "rials") and u != embedded:
+        if u not in (default, "rial", "rials") and u != UNIT_LABELS[embedded]:
             raise ValidationError(
                 "واحد داخل مقدار با واحد ورودی متفاوت است؛ یکی را اصلاح کنید.")
         target = embedded

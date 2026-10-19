@@ -290,12 +290,13 @@ class MainWindow:
     def refresh_ledger(self):
         trial = self.services.ledger.book.trial_balance()
         lines = ["تراز آزمایشی (ریال)", "-------------------------------"]
-        for account in trial.get("accounts", []):
+        for account in trial.get("rows", []):
             lines.append("%s %s بدهکار=%s بستانکار=%s مانده=%s" % (
-                isolate(account.get("code")), account.get("name"),
+                isolate(account.get("account_code")), account.get("account_name"),
                 "{:,}".format(int(account.get("debit_rial") or 0)),
                 "{:,}".format(int(account.get("credit_rial") or 0)),
-                "{:,}".format(int(account.get("balance_rial") or 0))))
+                "{:,}".format(int(account.get("closing_debit_rial") or 0)
+                             - int(account.get("closing_credit_rial") or 0))))
         lines.append("متوازن: %s" % ("بله" if trial.get("is_balanced") else "خیر"))
         self._set_text(self.ledger_text, "\n".join(lines))
 
