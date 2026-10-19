@@ -525,7 +525,11 @@ class SettlementService:
         rate = settlement.get("net_rate_percent")
         source = settlement.get("rate_source") or payload.get("rate_source")
         source_label = RATE_SOURCE_LABELS.get(source, source)
-        rate_text = "—" if rate is None else ("%s%%" % rate)
+        if rate is None:
+            rate_text = "—"
+        else:
+            # 80.0 -> "80%" ، 85.5 -> "85.5%" (بدون ممیز اضافه)
+            rate_text = "%s%%" % format(Decimal(str(rate)).normalize(), "f")
         return {
             "code": settlement["code"],
             "party_name": settlement.get("party_name"),
