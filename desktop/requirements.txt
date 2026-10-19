@@ -1,0 +1,2 @@
+# Runtime dependencies: Python 3.8+ standard library only.
+# No pip install is needed to launch from source.
