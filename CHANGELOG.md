@@ -10,7 +10,7 @@
 - هستهٔ چهارلایهٔ `desktop/sorting_os/` (ADR-0001): `core.py` (سیاست پول و تقویم شمسی آفلاین)،
   `db.py` (تراکنش/مهاجرت/audit)، `migrations.py` (MIGRATION_1 و MIGRATION_2)، `services/` (۱۳ سرویس
   دامنه) و `ui/app.py` (پوستهٔ فارسی/RTL). `[Prompt 05..24]`
-- مجموعهٔ آزمون headless در `desktop/tests/`: **۱۹۰ آزمون** (۱۷ پایه + ۱۷۳ جدید) شامل تست‌های invariant
+- مجموعهٔ آزمون headless در `desktop/tests/`: **۲۰۹ آزمون** (۱۷ پایه + ۱۹۲ جدید) شامل تست‌های invariant
   مالی/انبار، import/export، بانک/چک، امنیت، backup/restore، گزارش‌ها، دورهٔ مالی، property
   (دادهٔ تصادفی قطعی)، سناریوهای پذیرش A–H، کارایی و آفلاین. `[Prompt 28..30]`
 - `desktop/sorting_os/services/migration.py` — مهاجرت دادهٔ تاریخی با واحد صریح، preview،
@@ -20,9 +20,15 @@
   `docs/HANDOVER_FA.md`. `[Prompt 33..35]`
 - `docs/architecture/ADR-0001-platform-and-runtime.md` و `docs/architecture/platform-compatibility-matrix.md`
   (ماتریس سازگاری با وضعیت واقعی هر قلم). `[Prompt 02]`
-- `docs/requirements-traceability.csv` (۸۴ نیازمندی با وضعیت و سطح شواهد) و `docs/open-decisions.md`. `[Prompt 03]`
+- `docs/requirements-traceability.csv` (۹۳ نیازمندی با وضعیت و سطح شواهد) و `docs/open-decisions.md`. `[Prompt 03]`
 - `scripts/check-doc-links` (بررسی لینک‌های محلی و مسیرهای بحرانی اسناد) و `scripts/required-paths.txt`. `[Prompt 04]`
 - `CHANGELOG.md`. `[Prompt 04]`
+- **تخصیص درصد صافی (DEC-017)**: جدول `settlement_rates` با سه سطح «پیش‌فرض / حساب طرف / فاکتور»،
+  نسخه‌بندی نرخ (ویرایش، گذشته را بازنویسی نمی‌کند)، ترتیب اعمال `invoice ← party ← default`،
+  ثبت منشأ نرخ روی سند صافی (`rate_source`/`rate_id`) و نمایش نرخ و منشأ آن در چاپ صورتحساب صافی.
+  بدون نرخ مؤثر، محاسبه رد می‌شود (فرض درصد ممنوع). تب «صافی و درصد» در پوستهٔ اپراتور. `[DEC-017]`
+- `MIGRATION_3` در `desktop/sorting_os/migrations.py` (تراکنشی و نسخه‌دار): جدول `settlement_rates`
+  و سه ستون جدید روی `settlements`؛ `LATEST_SCHEMA_VERSION` = ۳. `[DEC-017]`
 
 ### Changed
 
@@ -37,6 +43,12 @@
 - `services/periods.py`: سود دوره بستانکار (و زیان بدهکار) به ۳۱۰۰ منتقل می‌شود و سند بستن همیشه
   متوازن است. `[Prompt 17]`
 - `.github/workflows/python-tests.yml` اکنون ساختار جدید و چک لینک اسناد را هم می‌آزماید. `[Prompt 04]`
+- `services/settlement.py`: محاسبهٔ صافی اکنون نرخ تخصیص‌یافته را به‌کار می‌برد و منشأ آن (دستی،
+  فاکتور، طرف، پیش‌فرض یا مشتق از مبلغ) را در snapshot ثبت می‌کند. `[DEC-017]`
+- `services/printing.py`: قالب پیش‌فرض صورتحساب صافی فیلد `rate_display` گرفت و
+  `ensure_builtin_templates()` نسخهٔ تازه فقط وقتی می‌سازد که قالب ذخیره‌شده با نسخهٔ داخلی فرق
+  داشته باشد (قالب سفارشی اپراتور بازنویسی نمی‌شود). `[DEC-017]`
+- `DEC-003` (معنای عددی درصد صافی) همچنان **باز** است؛ فقط *تخصیص* درصد طبق DEC-017 قطعی شد.
 
 ### Fixed
 

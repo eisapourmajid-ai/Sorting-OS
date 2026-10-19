@@ -15,10 +15,17 @@ so it is always visible what the operator entered:
 
 Commission and deduction rules are versioned rows with a validity window: a
 rule change today never changes a settlement that was approved yesterday.
+
+The settlement percentage itself is *assigned*, not hard coded (business
+decision DEC-017): it can be set per invoice, per settlement counterparty
+(supplier account) and always falls back to an editable default.  Every rate
+row is versioned, so editing a rate only affects settlements calculated
+afterwards — an approved settlement keeps the snapshot it was created with.
 """
 from __future__ import annotations
 
 import json
+from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
 from ..core import ConflictError, ValidationError, normalize_iso_date, now_iso, to_rial
@@ -28,6 +35,18 @@ FORMULA_VERSION = "settlement-v1"
 
 MODES = ("net_amount_input", "net_rate_input")
 ADJUSTMENT_TYPES = ("discount", "addition", "expense", "shortage", "other")
+
+#: Levels at which the settlement percentage can be assigned (DEC-017).
+RATE_SCOPES = ("default", "party", "invoice")
+
+#: Human readable source of the applied rate (stored on the settlement).
+RATE_SOURCE_LABELS = {
+    "manual": "ورود دستی",
+    "invoice": "نرخ فاکتور",
+    "party": "نرخ حساب طرف",
+    "default": "نرخ پیش‌فرض",
+    "amount_input": "مشتق از مبلغ خالص",
+}
 
 
 def round_rial(value):
@@ -87,11 +106,200 @@ class SettlementService:
         with self.db.reader() as con:
             return [dict(r) for r in con.execute(sql, params).fetchall()]
 
+    # -- rate assignment (DEC-017) ----------------------------------------- #
+    @staticmethod
+    def _check_rate_value(rate_percent):
+        if rate_percent is None:
+            raise ValidationError("درصد صافی لازم است.")
+        try:
+            value = Decimal(str(rate_percent))
+        except Exception:
+            raise ValidationError("درصد صافی باید عدد باشد.")
+        if not value.is_finite():
+            raise ValidationError("درصد صافی باید عددی متناهی باشد.")
+        if value < 0 or value > 100:
+            raise ValidationError("درصد صافی باید بین ۰ تا ۱۰۰ باشد.")
+        return value
+
+    def set_rate(self, scope, rate_percent, party_id=None, invoice_id=None,
+                 valid_from=None, valid_to=None, notes=None, actor="کاربر محلی"):
+        """Assign a settlement percentage at the given level.
+
+        ``scope`` is one of ``default`` (global fallback), ``party`` (the
+        settlement counterparty / supplier account) or ``invoice``.
+
+        Editing works by *closing* the currently active rate of the same
+        target and inserting a new version, so the history stays visible and
+        already calculated settlements are never rewritten.
+        """
+        if scope not in RATE_SCOPES:
+            raise ValidationError("سطح تخصیص درصد نامعتبر است: %s" % scope)
+        value = self._check_rate_value(rate_percent)
+        if scope == "party" and not party_id:
+            raise ValidationError("برای نرخ حساب طرف، انتخاب طرف الزامی است.")
+        if scope == "invoice" and not invoice_id:
+            raise ValidationError("برای نرخ فاکتور، انتخاب فاکتور الزامی است.")
+        if scope != "party":
+            party_id = None
+        if scope != "invoice":
+            invoice_id = None
+        start = normalize_iso_date(valid_from or now_iso()[:10], "تاریخ شروع اعتبار")
+        end = normalize_iso_date(valid_to, "تاریخ پایان اعتبار") if valid_to else None
+        if end and end < start:
+            raise ValidationError("تاریخ پایان اعتبار نمی‌تواند قبل از شروع باشد.")
+        with self.db.transaction() as con:
+            if party_id is not None and not con.execute(
+                    "SELECT 1 FROM parties WHERE id=?", (party_id,)).fetchone():
+                raise ValidationError("طرف حساب یافت نشد.")
+            if invoice_id is not None and not con.execute(
+                    "SELECT 1 FROM invoices WHERE id=?", (invoice_id,)).fetchone():
+                raise ValidationError("فاکتور یافت نشد.")
+            # close the active versions of the same target: the new version
+            # starts where the previous one ends, the history stays readable
+            previous_rows = con.execute(
+                """SELECT id, valid_from FROM settlement_rates
+                   WHERE scope=? AND IFNULL(party_id,0)=? AND IFNULL(invoice_id,0)=?
+                     AND is_active=1 AND valid_from <= ?
+                   ORDER BY valid_from""",
+                (scope, party_id or 0, invoice_id or 0, start)).fetchall()
+            previous = None
+            for row in previous_rows:
+                closed_until = (date.fromisoformat(start) - timedelta(days=1)).isoformat()
+                if closed_until < row["valid_from"]:
+                    # the version started on the very same day: it is replaced
+                    # by the new one instead of producing an inverted window
+                    closed_until = row["valid_from"]
+                con.execute(
+                    """UPDATE settlement_rates
+                       SET valid_to=?, is_active=0
+                       WHERE id=?""",
+                    (closed_until, row["id"]))
+                previous = row
+            cur = con.execute(
+                """INSERT INTO settlement_rates(scope, party_id, invoice_id, rate_percent,
+                        valid_from, valid_to, is_active, notes, created_at, created_by)
+                   VALUES(?,?,?,?,?,?,1,?,?,?)""",
+                (scope, party_id, invoice_id, float(value), start, end,
+                 str(notes or "").strip() or None, now_iso(), actor))
+            self.db.audit(actor, "set_rate", "settlement_rate", cur.lastrowid,
+                          "scope=%s rate=%s valid_from=%s" % (scope, float(value), start), con)
+            return {"rate_id": cur.lastrowid, "scope": scope, "party_id": party_id,
+                    "invoice_id": invoice_id, "rate_percent": float(value),
+                    "valid_from": start, "valid_to": end,
+                    "replaced_rate_id": previous["id"] if previous else None}
+
+    def set_default_rate(self, rate_percent, valid_from=None, valid_to=None, notes=None,
+                         actor="کاربر محلی"):
+        """Set the editable global fallback percentage."""
+        return self.set_rate("default", rate_percent, valid_from=valid_from,
+                              valid_to=valid_to, notes=notes, actor=actor)
+
+    def set_party_rate(self, party_id, rate_percent, valid_from=None, valid_to=None,
+                       notes=None, actor="کاربر محلی"):
+        """Set the percentage of a settlement counterparty (supplier account)."""
+        return self.set_rate("party", rate_percent, party_id=party_id, valid_from=valid_from,
+                              valid_to=valid_to, notes=notes, actor=actor)
+
+    def set_invoice_rate(self, invoice_id, rate_percent, valid_from=None, valid_to=None,
+                         notes=None, actor="کاربر محلی"):
+        """Set the percentage of a single invoice."""
+        return self.set_rate("invoice", rate_percent, invoice_id=invoice_id,
+                              valid_from=valid_from, valid_to=valid_to, notes=notes,
+                              actor=actor)
+
+    @staticmethod
+    def _active_rate_row(con, scope, party_id, invoice_id, on_date):
+        return con.execute(
+            """SELECT * FROM settlement_rates
+               WHERE scope=? AND IFNULL(party_id,0)=? AND IFNULL(invoice_id,0)=?
+                 AND is_active=1 AND valid_from <= ?
+                 AND (valid_to IS NULL OR valid_to >= ?)
+               ORDER BY valid_from DESC, id DESC LIMIT 1""",
+            (scope, party_id or 0, invoice_id or 0, on_date, on_date)).fetchone()
+
+    def list_rates(self, scope=None, party_id=None, invoice_id=None, on_date=None,
+                   active_only=False):
+        """List the rate versions (newest first)."""
+        sql = "SELECT * FROM settlement_rates WHERE 1=1"
+        params = []
+        if scope:
+            sql += " AND scope=?"
+            params.append(scope)
+        if party_id:
+            sql += " AND party_id=?"
+            params.append(party_id)
+        if invoice_id:
+            sql += " AND invoice_id=?"
+            params.append(invoice_id)
+        if on_date:
+            on_date = normalize_iso_date(on_date, "تاریخ")
+            sql += " AND valid_from <= ? AND (valid_to IS NULL OR valid_to >= ?)"
+            params.extend([on_date, on_date])
+        if active_only:
+            sql += " AND is_active=1"
+        sql += " ORDER BY scope, party_id, invoice_id, valid_from DESC, id DESC"
+        with self.db.reader() as con:
+            return [dict(r) for r in con.execute(sql, params).fetchall()]
+
+    def deactivate_rate(self, rate_id, actor="کاربر محلی"):
+        """Remove a rate from the resolution chain (the next level takes over)."""
+        with self.db.transaction() as con:
+            row = con.execute("SELECT * FROM settlement_rates WHERE id=?",
+                               (rate_id,)).fetchone()
+            if not row:
+                raise ValidationError("نرخ یافت نشد.")
+            end = now_iso()[:10]
+            if end < row["valid_from"]:
+                end = row["valid_from"]
+            con.execute("UPDATE settlement_rates SET is_active=0, valid_to=? WHERE id=?",
+                        (end, rate_id))
+            self.db.audit(actor, "deactivate_rate", "settlement_rate", rate_id,
+                          "scope=%s" % row["scope"], con)
+            return True
+
+    def resolve_rate(self, party_id=None, invoice_id=None, on_date=None):
+        """Return the percentage that applies to a settlement.
+
+        The resolution order is invoice → party → default.  ``manual`` (an
+        explicit parameter of :meth:`calculate`) always wins over all of them.
+        """
+        on_date = normalize_iso_date(on_date or now_iso()[:10], "تاریخ")
+        with self.db.reader() as con:
+            for scope, target_party, target_invoice in (
+                    ("invoice", None, invoice_id),
+                    ("party", party_id, None),
+                    ("default", None, None)):
+                if scope == "invoice" and not target_invoice:
+                    continue
+                if scope == "party" and not target_party:
+                    continue
+                row = self._active_rate_row(con, scope, target_party, target_invoice, on_date)
+                if row:
+                    return {"rate_percent": float(row["rate_percent"]),
+                            "source": scope,
+                            "source_label": RATE_SOURCE_LABELS[scope],
+                            "rate_id": row["id"],
+                            "party_id": row["party_id"],
+                            "invoice_id": row["invoice_id"],
+                            "valid_from": row["valid_from"],
+                            "valid_to": row["valid_to"],
+                            "as_of": on_date}
+        return {"rate_percent": None, "source": None, "source_label": None,
+                "rate_id": None, "party_id": party_id, "invoice_id": invoice_id,
+                "as_of": on_date}
+
     # -- calculation -------------------------------------------------------- #
     def calculate(self, party_id, shipment_id, lines, calculation_mode, reference_amount_rial=None,
                   net_rate_percent=None, net_amount_rial=None, adjustments=None,
-                  settlement_date=None, actor="کاربر محلی"):
-        """Calculate a settlement and store it with a full calculation snapshot."""
+                  settlement_date=None, invoice_id=None, actor="کاربر محلی"):
+        """Calculate a settlement and store it with a full calculation snapshot.
+
+        The applied percentage is resolved in this order: the explicit
+        ``net_rate_percent`` argument, the rate assigned to ``invoice_id``,
+        the rate assigned to the counterparty ``party_id`` and finally the
+        editable global default.  When no rate can be found the calculation is
+        refused instead of guessing a percentage.
+        """
         if calculation_mode not in MODES:
             raise ValidationError("حالت محاسبه نامعتبر است: %s" % calculation_mode)
         if not lines:
@@ -133,12 +341,21 @@ class SettlementService:
         if reference < 0:
             raise ValidationError("مبلغ مبنا نمی‌تواند منفی باشد.")
 
+        assigned = self.resolve_rate(party_id=party_id, invoice_id=invoice_id,
+                                      on_date=settlement_date)
         if calculation_mode == "net_rate_input":
             if net_rate_percent is None:
-                raise ValidationError("در حالت ورود درصد، نرخ خالص لازم است.")
-            rate = Decimal(str(net_rate_percent))
-            if rate < 0:
-                raise ValidationError("نرخ خالص نمی‌تواند منفی باشد.")
+                if assigned["rate_percent"] is None:
+                    raise ValidationError(
+                        "درصد صافی تعیین نشده است؛ نرخ فاکتور، نرخ حساب طرف یا نرخ پیش‌فرض "
+                        "را ثبت کنید (یا درصد را دستی وارد کنید).")
+                rate = Decimal(str(assigned["rate_percent"]))
+                rate_source = assigned["source"]
+                rate_id = assigned["rate_id"]
+            else:
+                rate = self._check_rate_value(net_rate_percent)
+                rate_source = "manual"
+                rate_id = None
             net_amount = round_rial(Decimal(reference) * rate / Decimal(100))
             net_rate = rate
         else:
@@ -147,6 +364,8 @@ class SettlementService:
             net_amount = to_rial(net_amount_rial, "ریال", "مبلغ خالص")
             net_rate = (Decimal(net_amount) * Decimal(100) / Decimal(reference)) \
                 if reference > 0 else None
+            rate_source = "amount_input"
+            rate_id = None
 
         commission = 0
         applied_rules = []
@@ -194,6 +413,12 @@ class SettlementService:
             "calculation_mode": calculation_mode,
             "reference_amount_rial": reference,
             "net_rate_percent": float(net_rate) if net_rate is not None else None,
+            "rate_source": rate_source,
+            "rate_source_label": RATE_SOURCE_LABELS.get(rate_source, rate_source),
+            "rate_id": rate_id,
+            "assigned_rate_percent": assigned["rate_percent"],
+            "assigned_rate_source": assigned["source"],
+            "assigned_rate_source_label": assigned["source_label"],
             "net_amount_rial": net_amount,
             "commission_rial": commission,
             "additions_rial": additions,
@@ -208,15 +433,16 @@ class SettlementService:
             row = con.execute("SELECT COALESCE(MAX(id),0) FROM settlements").fetchone()
             code = "STL-%06d" % (int(row[0]) + 1)
             cur = con.execute(
-                """INSERT INTO settlements(code, party_id, shipment_id, calculation_mode,
-                        reference_amount_rial, net_rate_percent, net_amount_rial,
-                        commission_rial, deductions_rial, additions_rial, formula_version,
-                        status, payload_json, created_at, created_by)
-                   VALUES(?,?,?,?,?,?,?,?,?,?,?, 'draft', ?,?,?)""",
-                (code, party_id, shipment_id, calculation_mode, reference,
+                """INSERT INTO settlements(code, party_id, shipment_id, invoice_id,
+                        calculation_mode, reference_amount_rial, net_rate_percent,
+                        net_amount_rial, commission_rial, deductions_rial, additions_rial,
+                        formula_version, rate_source, rate_id, status, payload_json,
+                        created_at, created_by)
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'draft', ?,?,?)""",
+                (code, party_id, shipment_id, invoice_id, calculation_mode, reference,
                  float(net_rate) if net_rate is not None else None, net_amount, commission,
-                 deductions, additions, FORMULA_VERSION, json.dumps(payload, ensure_ascii=False),
-                 stamp, actor))
+                 deductions, additions, FORMULA_VERSION, rate_source, rate_id,
+                 json.dumps(payload, ensure_ascii=False), stamp, actor))
             settlement_id = cur.lastrowid
             for line in prepared_lines:
                 con.execute(
@@ -283,6 +509,32 @@ class SettlementService:
             result["payload"] = json.loads(result["payload_json"])
         return result
 
+    def print_payload(self, settlement_id, unit="تومان"):
+        """Build the payload used for the printed settlement sheet.
+
+        The applied percentage and *where it came from* are part of the
+        printout, so that a printed document can never hide the rate that was
+        used.
+        """
+        from ..core import format_money
+
+        settlement = self.get(settlement_id)
+        if not settlement:
+            raise ValidationError("صافی یافت نشد.")
+        payload = settlement.get("payload") or {}
+        rate = settlement.get("net_rate_percent")
+        source = settlement.get("rate_source") or payload.get("rate_source")
+        source_label = RATE_SOURCE_LABELS.get(source, source)
+        rate_text = "—" if rate is None else ("%s%%" % rate)
+        return {
+            "code": settlement["code"],
+            "party_name": settlement.get("party_name"),
+            "net_display": format_money(int(settlement.get("net_amount_rial") or 0), unit),
+            "commission_display": format_money(int(settlement.get("commission_rial") or 0), unit),
+            "rate_display": "%s (%s)" % (rate_text, source_label or "—"),
+            "unit": unit,
+        }
+
     def list_settlements(self, party_id=None, status=None, limit=200):
         sql = "SELECT s.*, p.display_name AS party_name FROM settlements s JOIN parties p ON p.id=s.party_id"
         params = []
@@ -312,7 +564,10 @@ class SettlementService:
         amount = int(settlement["net_amount_rial"])
         if amount <= 0:
             raise ValidationError("مبلغ خالص صافی باید بزرگ‌تر از صفر باشد.")
-        notes = ["مدل کارمزدی/امانی و مبنای درصد صافی هنوز تصویب نشده است (DEC-001/DEC-003)."]
+        notes = [
+            "مدل کارمزدی/امانی و معنای دقیق درصد صافی هنوز تصویب نشده است (DEC-001/DEC-003).",
+            "تخصیص درصد (پیش‌فرض/طرف/فاکتور) طبق DEC-017 اعمال شده و در snapshot ثبت است.",
+        ]
         lines = [
             {"account_code": "1100", "debit_rial": amount, "credit_rial": 0,
              "description": "طلب بابت صافی", "party_ref": str(settlement["party_id"])},

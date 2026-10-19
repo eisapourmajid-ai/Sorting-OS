@@ -37,7 +37,7 @@ DEFAULT_TEMPLATES = {
     "settlement": {
         "title": "صورتحساب صافی",
         "header": ["SORTING OS", "شماره صافی: {code}"],
-        "fields": ["party_name", "net_display", "commission_display"],
+        "fields": ["party_name", "net_display", "rate_display", "commission_display"],
         "footer": "واحد مبالغ: {unit}",
     },
     "dispatch": {
@@ -79,6 +79,28 @@ class PrintService:
             self.db.audit(actor, "create_template", "print_template", cur.lastrowid,
                           "%s v%d" % (code, version), con)
             return {"id": cur.lastrowid, "code": code, "version": version}
+
+    def ensure_builtin_templates(self, actor="کاربر محلی"):
+        """Synchronise the stored templates with the built-in definitions.
+
+        A new version is created only when the active stored template differs
+        from the built-in one, so an installation that was customised keeps
+        its own templates and no version is created on every start.
+        """
+        created = []
+        for document_type, template in DEFAULT_TEMPLATES.items():
+            with self.db.reader() as con:
+                row = con.execute(
+                    """SELECT id, template_json FROM print_templates
+                       WHERE document_type=? AND is_active=1 ORDER BY version DESC LIMIT 1""",
+                    (document_type,)).fetchone()
+            stored = json.loads(row["template_json"]) if row else None
+            if stored == template:
+                continue
+            result = self.create_template(document_type, template.get("title", document_type),
+                                          document_type, template, actor=actor)
+            created.append({"document_type": document_type, "version": result["version"]})
+        return {"updated": created, "count": len(created)}
 
     def list_templates(self, document_type=None, active_only=False):
         sql = "SELECT * FROM print_templates WHERE 1=1"

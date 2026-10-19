@@ -158,10 +158,19 @@ class Application:
         }
 
     # -- commands ----------------------------------------------------------- #
+    def sync_builtin_templates(self):
+        """Bring the stored print templates in line with the built-in ones."""
+        try:
+            return self.services.printing.ensure_builtin_templates(actor=self.actor)
+        except Exception:  # pragma: no cover - never block the start-up
+            self.logger.exception("همگام‌سازی قالب‌های چاپ ناموفق بود")
+            return {"updated": [], "count": 0}
+
     def run_gui(self):
         """Start the desktop UI (Prompt 24).  Requires tkinter."""
         from .ui.app import launch
 
+        self.sync_builtin_templates()
         return launch(self)
 
 
@@ -194,6 +203,7 @@ def main(argv=None):
         if args.init_db:
             print("پایگاه داده: %s" % app.db.path)
             print("نسخهٔ schema: %s" % app.db.schema_version())
+            print("قالب‌های به‌روزشده: %s" % app.sync_builtin_templates()["count"])
             return 0
         if args.doctor:
             report = app.doctor()

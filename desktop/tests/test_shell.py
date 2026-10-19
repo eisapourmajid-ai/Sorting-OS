@@ -98,7 +98,8 @@ class ShellTests(unittest.TestCase):
         app = Application(paths=self.paths, console_logging=False)
         try:
             self.assertTrue(os.path.isfile(app.db.path))
-            self.assertEqual(app.db.schema_version(), 2)
+            from sorting_os.migrations import LATEST_SCHEMA_VERSION
+            self.assertEqual(app.db.schema_version(), LATEST_SCHEMA_VERSION)
         finally:
             app.shutdown()
 

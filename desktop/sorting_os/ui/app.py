@@ -33,6 +33,7 @@ NAV_ITEMS = (
     ("sorting", "سورتینگ"),
     ("inventory", "انبار"),
     ("invoices", "فاکتور"),
+    ("settlement", "صافی و درصد"),
     ("ledger", "دفترکل"),
     ("reports", "گزارش‌ها"),
     ("settings", "تنظیمات"),
@@ -145,6 +146,7 @@ class MainWindow:
             "sorting": self._screen_sorting,
             "inventory": self._screen_inventory,
             "invoices": self._screen_invoices,
+            "settlement": self._screen_settlement,
             "ledger": self._screen_ledger,
             "reports": self._screen_reports,
             "settings": self._screen_settings,
@@ -197,6 +199,42 @@ class MainWindow:
                                   ("شناسه", "شماره", "تاریخ", "مبلغ (ریال)", "وضعیت"))
         self.invoices_tree.pack(fill="both", expand=True)
         return {"refresh": self.refresh_invoices}
+
+    def _screen_settlement(self, ttk, frame):
+        """تخصیص و ویرایش درصد صافی (پیش‌فرض، حساب طرف، فاکتور)."""
+        form = ttk.Frame(frame)
+        form.pack(fill="x")
+
+        ttk.Label(form, text="درصد", anchor="e").pack(side="right")
+        self.rate_value = tk_entry(ttk, form, 10)
+        self.rate_value.pack(side="right", padx=4)
+
+        ttk.Label(form, text="شناسه طرف", anchor="e").pack(side="right")
+        self.rate_party = tk_entry(ttk, form, 8)
+        self.rate_party.pack(side="right", padx=4)
+
+        ttk.Label(form, text="شناسه فاکتور", anchor="e").pack(side="right")
+        self.rate_invoice = tk_entry(ttk, form, 8)
+        self.rate_invoice.pack(side="right", padx=4)
+
+        buttons = ttk.Frame(frame)
+        buttons.pack(fill="x", pady=6)
+        ttk.Button(buttons, text="ثبت نرخ پیش‌فرض", command=lambda: self.guard(
+            lambda: self._set_rate("default"))).pack(side="right", padx=4)
+        ttk.Button(buttons, text="ثبت نرخ حساب طرف", command=lambda: self.guard(
+            lambda: self._set_rate("party"))).pack(side="right", padx=4)
+        ttk.Button(buttons, text="ثبت نرخ فاکتور", command=lambda: self.guard(
+            lambda: self._set_rate("invoice"))).pack(side="right", padx=4)
+        ttk.Button(buttons, text="نرخ مؤثر", command=lambda: self.guard(
+            self._show_effective_rate)).pack(side="right", padx=4)
+
+        self.rate_status = tk_text(ttk, frame, height=4)
+        self.rate_status.pack(fill="x", pady=4)
+
+        self.rates_tree = tree(ttk, frame, ("scope", "target", "rate", "valid_from", "valid_to"),
+                               ("سطح", "هدف", "درصد", "از تاریخ", "تا تاریخ"))
+        self.rates_tree.pack(fill="both", expand=True)
+        return {"refresh": self.refresh_rates}
 
     def _screen_ledger(self, ttk, frame):
         self.ledger_text = tk_text(ttk, frame, height=18)
@@ -286,6 +324,48 @@ class MainWindow:
                           "{:,}".format(int(i.get("amount_rial") or 0)),
                           status_label(i.get("status"))) for i in rows],
                         empty_state_text("table"))
+
+    def refresh_rates(self):
+        rows = []
+        for rate in self.services.settlements.list_rates():
+            target = rate.get("party_id") or rate.get("invoice_id") or "—"
+            rows.append((rate["scope"], target, "%s%%" % rate["rate_percent"],
+                         rate.get("valid_from") or "—", rate.get("valid_to") or "—"))
+        self._fill_tree(self.rates_tree, rows, empty_state_text("table"))
+
+    def _set_rate(self, scope):
+        value = self.rate_value.get().strip()
+        if not value:
+            raise UiError("درصد را وارد کنید.")
+        party = self.rate_party.get().strip()
+        invoice = self.rate_invoice.get().strip()
+        if scope == "party":
+            if not party:
+                raise UiError("شناسه طرف را وارد کنید.")
+            result = self.services.settlements.set_party_rate(int(party), value,
+                                                              actor=self.app.actor)
+        elif scope == "invoice":
+            if not invoice:
+                raise UiError("شناسه فاکتور را وارد کنید.")
+            result = self.services.settlements.set_invoice_rate(int(invoice), value,
+                                                                actor=self.app.actor)
+        else:
+            result = self.services.settlements.set_default_rate(value, actor=self.app.actor)
+        self.set_status("نرخ %s ثبت شد (نسخهٔ %s)." % (scope, result["rate_id"]))
+        self.refresh_rates()
+
+    def _show_effective_rate(self):
+        party = self.rate_party.get().strip()
+        invoice = self.rate_invoice.get().strip()
+        resolved = self.services.settlements.resolve_rate(
+            party_id=int(party) if party else None,
+            invoice_id=int(invoice) if invoice else None)
+        if resolved["rate_percent"] is None:
+            text = "نرخ مؤثری تعریف نشده است؛ پیش‌فرض یا نرخ طرف/فاکتور را ثبت کنید."
+        else:
+            text = "نرخ مؤثر: %s%% — منبع: %s" % (resolved["rate_percent"],
+                                                  resolved["source_label"])
+        self._set_text(self.rate_status, text)
 
     def refresh_ledger(self):
         trial = self.services.ledger.book.trial_balance()

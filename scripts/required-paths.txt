@@ -39,3 +39,5 @@ desktop/tests/test_finance.py
 desktop/tests/test_banking.py
 desktop/tests/test_exchange.py
 desktop/tests/test_security_backup_reports.py
+desktop/tests/test_settlement_rates.py
+reports/SETTLEMENT_RATE_ASSIGNMENT.md

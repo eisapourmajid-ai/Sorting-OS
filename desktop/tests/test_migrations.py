@@ -33,8 +33,17 @@ class MigrationTests(unittest.TestCase):
         for expected in ("parties", "shipments", "invoices", "invoice_lines",
                          "journal_entries", "inventory_transactions", "settlements",
                          "bank_transactions", "cheques", "users", "print_templates",
-                         "fiscal_periods"):
+                         "fiscal_periods", "settlement_rates"):
             self.assertIn(expected, tables)
+
+    def test_settlement_rate_columns_exist(self):
+        path = os.path.join(self.tempdir.name, "rates.sqlite3")
+        db = AppDatabase(path)
+        with db.reader() as con:
+            settlement_columns = {row[1] for row in con.execute(
+                "PRAGMA table_info(settlements)").fetchall()}
+        for column in ("invoice_id", "rate_source", "rate_id"):
+            self.assertIn(column, settlement_columns)
 
     def test_migration_is_idempotent(self):
         path = os.path.join(self.tempdir.name, "again.sqlite3")

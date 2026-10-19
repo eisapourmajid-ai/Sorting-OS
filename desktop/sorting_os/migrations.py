@@ -680,9 +680,53 @@ MIGRATION_2 = [
     ),
 ]
 
+# --------------------------------------------------------------------------- #
+# Migration 3 - settlement rate assignment (default / party / invoice)
+# --------------------------------------------------------------------------- #
+# Business decision (DEC-017): the settlement percentage is assigned per
+# supplier account (party) or per invoice, always falls back to an editable
+# default and is versioned so that a change never rewrites an approved
+# settlement.
+MIGRATION_3 = [
+    (
+        "settlement rate assignment: default, per party and per invoice",
+        [
+            """CREATE TABLE IF NOT EXISTS settlement_rates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                scope TEXT NOT NULL CHECK(scope IN ('default','party','invoice')),
+                party_id INTEGER REFERENCES parties(id),
+                invoice_id INTEGER REFERENCES invoices(id),
+                rate_percent REAL NOT NULL CHECK(rate_percent >= 0 AND rate_percent <= 100),
+                valid_from TEXT NOT NULL,
+                valid_to TEXT,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                notes TEXT,
+                created_at TEXT NOT NULL,
+                created_by TEXT,
+                CHECK(
+                    (scope='default' AND party_id IS NULL AND invoice_id IS NULL) OR
+                    (scope='party'   AND party_id IS NOT NULL AND invoice_id IS NULL) OR
+                    (scope='invoice' AND invoice_id IS NOT NULL AND party_id IS NULL)
+                )
+            )""",
+            # only one *active* version per target and start date: a closed
+            # version keeps its date and stays visible in the history
+            """CREATE UNIQUE INDEX IF NOT EXISTS ux_settlement_rates_target
+                   ON settlement_rates(scope, IFNULL(party_id, 0), IFNULL(invoice_id, 0), valid_from)
+                   WHERE is_active=1""",
+            "CREATE INDEX IF NOT EXISTS ix_settlement_rates_party ON settlement_rates(party_id)",
+            "CREATE INDEX IF NOT EXISTS ix_settlement_rates_invoice ON settlement_rates(invoice_id)",
+            "ALTER TABLE settlements ADD COLUMN invoice_id INTEGER REFERENCES invoices(id)",
+            "ALTER TABLE settlements ADD COLUMN rate_source TEXT",
+            "ALTER TABLE settlements ADD COLUMN rate_id INTEGER REFERENCES settlement_rates(id)",
+        ],
+    ),
+]
+
 MIGRATIONS = [
     (1, "operational baseline schema", MIGRATION_1),
     (2, "domain, finance, banking, security and printing extensions", MIGRATION_2),
+    (3, "settlement rate assignment (default / party / invoice)", MIGRATION_3),
 ]
 
 LATEST_SCHEMA_VERSION = MIGRATIONS[-1][0]

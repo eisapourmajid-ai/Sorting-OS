@@ -10,7 +10,7 @@
 
 | قلم | وضعیت |
 |---|---|
-| تست‌های headless | **۱۹۰ تست، همه PASS** (۱۷ legacy + ۱۷۳ جدید) |
+| تست‌های headless | **۲۰۹ تست، همه PASS** (۱۷ legacy + ۱۹۲ جدید) — به‌روزرسانی 2026-10-19 پس از DEC-017 |
 | آفلاین‌بودن | PASS با آزمون (تحلیل ایستا + جریان کامل با `socket` مسدود) |
 | بستهٔ portable | PASS — `dist/SORTING-OS-0.2.0.zip` با SBOM و SHA256 |
 | EXE (PyInstaller) | **NOT RUN** — PyInstaller در این محیط نصب نیست |
@@ -35,7 +35,7 @@
 
 ## ۳) شواهد آزمون (خروجی واقعی)
 
-- `cd desktop && python3 -m unittest discover -s tests` → `Ran 190 tests … OK`
+- `cd desktop && python3 -m unittest discover -s tests` → `Ran 209 tests … OK` (2026-10-19، پس از DEC-017)
 - `python3 scripts/check-doc-links .` → ۰ لینک شکسته، ۰ مسیر بحرانی مفقود
 - `python3 -m py_compile …` → OK
 - اندازه‌گیری کارایی (Prompt 30): ۱۰۰ posting = ۰.۸۶s، ۳۰۰ گردش انبار = ۰.۴۸s،
