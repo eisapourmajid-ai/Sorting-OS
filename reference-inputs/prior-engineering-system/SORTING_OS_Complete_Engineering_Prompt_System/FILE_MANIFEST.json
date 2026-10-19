@@ -1,0 +1,321 @@
+{
+  "package": "SORTING OS Complete Engineering Prompt System",
+  "version": "2.0.0",
+  "files": [
+    {
+      "path": "EXECUTION_LEDGER.md",
+      "bytes": 5826,
+      "sha256": "197527aa058691471a78bc872442d89aa1798837681f3d0e869429584ddb3589"
+    },
+    {
+      "path": "MASTER_PROMPT.md",
+      "bytes": 12335,
+      "sha256": "15d04ea110934e6854a8d754998012f7457916c50157ceee029e1be3965e05b8"
+    },
+    {
+      "path": "PATCH_MANIFEST.md",
+      "bytes": 2647,
+      "sha256": "af897dbb694bb7f48d99cfa4891efb9e6334486e74043d1ef5b966e964440700"
+    },
+    {
+      "path": "README_START_HERE_FA.md",
+      "bytes": 4846,
+      "sha256": "4e44e202cb8a165a66e8e44318b5d31b9542fdf82db0cfba24ec8d22981aeb5b"
+    },
+    {
+      "path": "SORTING_OS_ALL_PROMPTS_COMBINED_FA.md",
+      "bytes": 124414,
+      "sha256": "c8fd1e69cbf7a722fca3e6cc4cdbdd1f4aac0baa4b96acb4e2ef36a37f4737ea"
+    },
+    {
+      "path": "prompts/00-repository-audit.md",
+      "bytes": 5196,
+      "sha256": "3c161e99e53ede898c555c7b42c7af51f57cd2fa3e59966aea05558fbd1fe5f4"
+    },
+    {
+      "path": "prompts/01-environment-bootstrap.md",
+      "bytes": 4328,
+      "sha256": "c0f51b9e4596f85e6b788f043e20e11ef6be56eb3e556f42e9ad9c483a62afaf"
+    },
+    {
+      "path": "prompts/02-architecture-decisions.md",
+      "bytes": 4481,
+      "sha256": "89b5ff258ee6eef8e1cb6bd1cf2abe22a331f809705c4c629d88d1b8c9c3f905"
+    },
+    {
+      "path": "prompts/03-solution-foundation.md",
+      "bytes": 3990,
+      "sha256": "e71dc315127864c9b9c8e37cf9d625bbfd1c93b968b69f23e621c54923443c3e"
+    },
+    {
+      "path": "prompts/04-database-domain-foundation.md",
+      "bytes": 4213,
+      "sha256": "67ac739947fc902f07980c324c98617c6ebdaf8af0ea9db6d8dd082c94614711"
+    },
+    {
+      "path": "prompts/05-auth-rbac-audit.md",
+      "bytes": 3959,
+      "sha256": "7b30a28dc031f82a61ccdb508e74146c4eca807e1202811619d6c175103ece48"
+    },
+    {
+      "path": "prompts/06-master-data-parties.md",
+      "bytes": 4321,
+      "sha256": "23fabd6f3b542e7d55174d01a9f2bb50d991b7c78dba0a45fa6ae0f25a2445c4"
+    },
+    {
+      "path": "prompts/07-party-matching-merge.md",
+      "bytes": 4925,
+      "sha256": "c79efbc5594a32d8c4b6a9389694f34c7d31274b4380d54262d4eefe96472a84"
+    },
+    {
+      "path": "prompts/08-import-export-engine.md",
+      "bytes": 4929,
+      "sha256": "aff04066dc31be09b4d96b8c7017d66caed5fca70b0d32e3e139a577d81a4a17"
+    },
+    {
+      "path": "prompts/09-weighing-shipment.md",
+      "bytes": 3928,
+      "sha256": "cf42c662ec8989adef8415a146b1a71d0524b313435bc34a2d9f9125301bd2de"
+    },
+    {
+      "path": "prompts/10-sorting-packaging.md",
+      "bytes": 3986,
+      "sha256": "fe13a578d7ce4c413903ca803cd21dd715967db62756a50cd57e2cc91bee83c2"
+    },
+    {
+      "path": "prompts/11-inventory-reservations.md",
+      "bytes": 3581,
+      "sha256": "18124014994905c2334cef2442e272a65287a36a6637736536ead633ff3fbdb9"
+    },
+    {
+      "path": "prompts/12-dispatch-vehicles.md",
+      "bytes": 3541,
+      "sha256": "a02cb87b0f08bee08e52e5a2bf567cede61b8bd41984cf1f35c7750b5787c513"
+    },
+    {
+      "path": "prompts/13-purchase-invoices-expenses.md",
+      "bytes": 3980,
+      "sha256": "f423f43c6434899a451510c98c2982993c8fd916a6cbad0c48b5dac020331440"
+    },
+    {
+      "path": "prompts/14-sales-invoice-settlement-prep.md",
+      "bytes": 4060,
+      "sha256": "aee6aa47a7560550fa635d923598ee870c6612527babb89ef227258e1f587fc7"
+    },
+    {
+      "path": "prompts/15-settlement-engine.md",
+      "bytes": 4390,
+      "sha256": "37da16758bd0939f87df52551eea7274341e855b24940233d7a8efade780bc56"
+    },
+    {
+      "path": "prompts/16-accounting-double-entry.md",
+      "bytes": 3906,
+      "sha256": "fc941b45f02d4aefe6dc69ed4bb0dfb388782040d917c7b8627bed0254352f2d"
+    },
+    {
+      "path": "prompts/17-bank-import-reconciliation-checks.md",
+      "bytes": 4801,
+      "sha256": "9e8d8391709024dabf9041b3712b475a04ffdea6db8ad81ffa6d3136f153db73"
+    },
+    {
+      "path": "prompts/18-reporting-query-engine.md",
+      "bytes": 3540,
+      "sha256": "fcb28c4965d1d040df3c5870fd535c7c70c76001e873b65536f6a837d7aae888"
+    },
+    {
+      "path": "prompts/19-configurable-printing.md",
+      "bytes": 4342,
+      "sha256": "5e71af162c2eb67a6716908462cd748143dbacca5ebec6363dc492dc60a0d243"
+    },
+    {
+      "path": "prompts/20-ui-design-system-dashboard.md",
+      "bytes": 4278,
+      "sha256": "1475319f849e576769742771022b1dc4006df4f5cfe8758fd5e87a0f56c2f097"
+    },
+    {
+      "path": "prompts/21-backup-restore-data-migration.md",
+      "bytes": 4285,
+      "sha256": "449d52607f3d7c7da96280a52c5d54fe1c24d70eb77c23bfb0f938542bf4d61a"
+    },
+    {
+      "path": "prompts/22-automated-testing-e2e.md",
+      "bytes": 3647,
+      "sha256": "072088f9693698f6f006d68cd95da6cb7014769c8aeb6815abde07ac439070fb"
+    },
+    {
+      "path": "prompts/23-performance-reliability-offline.md",
+      "bytes": 3666,
+      "sha256": "dd02adf3d8ecde6d374c1016d986bfa9db69c9f370e750c08b8a6d7ea03818cb"
+    },
+    {
+      "path": "prompts/24-installer-release-packaging.md",
+      "bytes": 3718,
+      "sha256": "5f6eca900c0c46a13fc4c858cf9b85bdc3beddfc56a617558ee3889b2ef85cc2"
+    },
+    {
+      "path": "prompts/25-pilot-go-live-operations.md",
+      "bytes": 4199,
+      "sha256": "bbeb7b3bd308b0e9492cfa3c79553f26d9ba4ba6f12e265999216995008cbc9c"
+    },
+    {
+      "path": "prompts/26-post-release-maintenance.md",
+      "bytes": 3457,
+      "sha256": "582c3ef5b5783438457eec82c70c37241a2686b84ae4109619f085b06332ddf8"
+    },
+    {
+      "path": "reference-inputs/12-bank-transactions-import-and-checks.md",
+      "bytes": 42537,
+      "sha256": "f472b1ca1464c45271af7f6a8e00aba65c155d89edf65fcca9df44d735cd0360"
+    },
+    {
+      "path": "reference-inputs/PROJECT_SPEC.md",
+      "bytes": 17368,
+      "sha256": "2ebf1f9dbcb239a29787152bbd1e467500855749fa9031dd6720bac5ad8ef7a5"
+    },
+    {
+      "path": "reference-inputs/SORTING_OS_Import_Export_Matching_Print_Spec.md",
+      "bytes": 80954,
+      "sha256": "06d35ea9ba9d200538e2bd6f4750cbb2031492019dc1e544113225dd9288f6ac"
+    },
+    {
+      "path": "reference-inputs/UI_LAYOUT_THEME_HEADER_SPEC.md",
+      "bytes": 40308,
+      "sha256": "142a931ae910fc483a05985d9aeaafc05d65b49ab68b23d9a55de634de605e1d"
+    },
+    {
+      "path": "repo-patch/.github/ISSUE_TEMPLATE/bug.md",
+      "bytes": 1101,
+      "sha256": "0e90e5c4c652e9dce08c52a85de160c20155db6dcb15f878ea07fde590821116"
+    },
+    {
+      "path": "repo-patch/.github/ISSUE_TEMPLATE/feature.md",
+      "bytes": 1498,
+      "sha256": "11a01eb324bc8305fd364b4888eede72fd01f5555eeb37caf46c4c507eed04de"
+    },
+    {
+      "path": "repo-patch/.github/PULL_REQUEST_TEMPLATE.md",
+      "bytes": 1317,
+      "sha256": "cf787f8f386465f12ac99d4ff660f694f85096a39e55c0a53fe7c4b8904a5471"
+    },
+    {
+      "path": "repo-patch/CONTRIBUTING.md",
+      "bytes": 2029,
+      "sha256": "3bcfec69ef3b7f79cf58ff28dfb0f5fc59e18ebe00019783578fca897a1f6ba4"
+    },
+    {
+      "path": "repo-patch/LICENSE-DECISION.md",
+      "bytes": 1075,
+      "sha256": "7f51355641dae278ae5e101ceed665eb40f8d6a0548c1bf3da7f46a48067c075"
+    },
+    {
+      "path": "repo-patch/PROJECT_SPEC.md",
+      "bytes": 17368,
+      "sha256": "2ebf1f9dbcb239a29787152bbd1e467500855749fa9031dd6720bac5ad8ef7a5"
+    },
+    {
+      "path": "repo-patch/README.md",
+      "bytes": 4384,
+      "sha256": "36792fc590537e097bdfe73033e719ebbf5f2e6202a79dd8da374b66a5532967"
+    },
+    {
+      "path": "repo-patch/docs/01-business-workflows.md",
+      "bytes": 9924,
+      "sha256": "74fff85b70e7563ac8565f836d3511005bd8d495870ccdf4641a95ad598d5189"
+    },
+    {
+      "path": "repo-patch/docs/02-data-model.md",
+      "bytes": 11034,
+      "sha256": "543c49a595b5383247f7296bd098db557b8c91ce41f90bc7a85796cd256ca9b4"
+    },
+    {
+      "path": "repo-patch/docs/03-accounting-settlement-rules.md",
+      "bytes": 11050,
+      "sha256": "4e23e9aaffdc64f9b562c6bb68faa34393a2b8c89aad0b2c4d3bb35566ba97aa"
+    },
+    {
+      "path": "repo-patch/docs/04-ui-ux-design-system.md",
+      "bytes": 10722,
+      "sha256": "0977031a95bfa35e3bebc5d59dea5c1e09c33712a56eebb61bee5773bd933016"
+    },
+    {
+      "path": "repo-patch/docs/05-offline-windows7-architecture.md",
+      "bytes": 7699,
+      "sha256": "049a4c659479e68f3afa72839c25601dc5ee0c0cd84db0d3b161faeffd295b87"
+    },
+    {
+      "path": "repo-patch/docs/06-reporting-printing.md",
+      "bytes": 4762,
+      "sha256": "d5ca9ab3e43cea5d6ec9e7d91d01219da7188eb7d7ede96c056f13219cd64314"
+    },
+    {
+      "path": "repo-patch/docs/07-security-backup-import.md",
+      "bytes": 6526,
+      "sha256": "8ad6cb2c1e0aaf8aeadba37a9b88622adf6c33bf7ba34f1091240fde614fe9c3"
+    },
+    {
+      "path": "repo-patch/docs/08-testing-acceptance.md",
+      "bytes": 7132,
+      "sha256": "7f434e78f73037f1ea58826804d4e8ab3e16c89298086bbcf0ebe56fef01f304"
+    },
+    {
+      "path": "repo-patch/docs/09-phases-and-ai-agent.md",
+      "bytes": 9527,
+      "sha256": "9b529d2b4824900c6523df241dd835226da0d6533627f57d432e0c70c4327b6a"
+    },
+    {
+      "path": "repo-patch/docs/10-master-ai-coding-directive.md",
+      "bytes": 68736,
+      "sha256": "640084438819228816b0c2d6fc71044812761be8d54a03a62d591a15b72b0afc"
+    },
+    {
+      "path": "repo-patch/docs/11-implementation-roadmap-gates.md",
+      "bytes": 5006,
+      "sha256": "014f6677bf237f5eec35a7a7721b711085f2dcd9550a4281ad1180c90b0ed5ea"
+    },
+    {
+      "path": "repo-patch/docs/12-data-exchange-identity-matching-and-printing.md",
+      "bytes": 4604,
+      "sha256": "fd3013f71213ca2f8dcc8108af008748c3159b19a63ce26a4ae0852b01558a91"
+    },
+    {
+      "path": "repo-patch/docs/13-bank-transactions-import-and-checks.md",
+      "bytes": 42537,
+      "sha256": "f472b1ca1464c45271af7f6a8e00aba65c155d89edf65fcca9df44d735cd0360"
+    },
+    {
+      "path": "repo-patch/docs/14-repository-readiness-and-evidence.md",
+      "bytes": 3289,
+      "sha256": "71cf6ed42f4ee3bb9dee5dcf7e5f9733d54938cd35bfa0ef71dc14e69ab099e2"
+    },
+    {
+      "path": "repo-patch/docs/15-ai-agent-prompt-execution.md",
+      "bytes": 2221,
+      "sha256": "a6c8ba084840c8a1e00411442bf8e04708599710c050763c4320eb5242259bc6"
+    },
+    {
+      "path": "repo-patch/docs/architecture/ADR-template.md",
+      "bytes": 1090,
+      "sha256": "bec1efcaaab567069fb024fb4c1520aee0bb61247b01a2722cd45c5dff289c26"
+    },
+    {
+      "path": "repo-patch/docs/decision-log.md",
+      "bytes": 1430,
+      "sha256": "f04cf6bc8fb30f391ec7593a7197eb3aa8e032f0a3c3f605a9ecb376b079ed95"
+    },
+    {
+      "path": "repo-patch/docs/dependency-matrix-template.md",
+      "bytes": 1607,
+      "sha256": "9c1f19c5a4477f7f1dda0f2b0ae2d0f44976b7d4abe1e8fd7cddfcaf6ac79a04"
+    },
+    {
+      "path": "repo-patch/docs/examples/import-matching-scenarios.md",
+      "bytes": 2237,
+      "sha256": "2f9484bfc8b164d57d3b454828c15a6dde6ba6cd568f9be597a6892f8290f441"
+    },
+    {
+      "path": "repo-patch/docs/examples/settlement-example.md",
+      "bytes": 3667,
+      "sha256": "09a76ad54ed0490d06e5ff287446c62c995fab1658c605461660a6e8550c120b"
+    }
+  ]
+}

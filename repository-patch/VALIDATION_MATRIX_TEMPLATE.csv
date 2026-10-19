@@ -1,0 +1,5 @@
+TestID,RequirementID,Layer,Scenario,Command,Expected,Actual,Status,Evidence,OS,Runtime,Notes
+T-OFF-001,NFR-OFF-001,System,Core flow with network disabled,,,,NOT RUN,,,,
+T-MIG-001,NFR-DATA-002,Migration,Upgrade previous schema transactionally,,,,NOT RUN,,,,
+T-PRN-001,FR-RPT-002,Print,A4/A5 RTL page break and repeat header,,,,NOT RUN,,,,
+T-OS-001,NFR-PLAT-001,Platform,Windows 7 SP1 x64 start/DB/print/backup,,,,NOT RUN,NO TARGET EVIDENCE,Windows 7 SP1 x64,,

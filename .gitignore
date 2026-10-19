@@ -1,0 +1,44 @@
+# Python caches/builds
+__pycache__/
+*.py[cod]
+*.pyo
+build/
+dist/
+*.spec
+# the PyInstaller specification is source code, not a build artifact
+!desktop/sorting_os.spec
+.venv/
+venv/
+
+# Local runtime databases, backups and financial/customer data
+*.sqlite
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+*.bak
+*.backup
+backups/
+exports/
+imports/private/
+*.xlsx
+*.xls
+*.csv
+!contracts/*.csv
+!repository-patch/*.csv
+!docs/**/*.csv
+
+# Secrets / local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

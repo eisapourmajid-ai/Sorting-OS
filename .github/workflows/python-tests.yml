@@ -1,0 +1,29 @@
+name: Python tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.8', '3.11', '3.12']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Syntax check
+        run: python -m py_compile desktop/main.py desktop/database.py desktop/accounting_core.py
+      - name: Unit tests
+        working-directory: desktop
+        run: python -m unittest discover -s tests -v
+      - name: Documentation link and path check
+        run: python3 scripts/check-doc-links .
