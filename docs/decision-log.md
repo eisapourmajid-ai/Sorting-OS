@@ -35,15 +35,64 @@
 | DEC-012 | طبقه‌بندی جریان نقد و جاری/غیرجاری | حسابدار | Open | صورت وجوه نقد و نسبت‌های مالی |
 | DEC-013 | واحد مبالغ موجود در Excel/بانک/فاکتورهای تاریخی | مالی + مالک داده | Open | مهاجرت تاریخی |
 | DEC-014 | سیاست برگشت، تأیید و قفل سند قطعی | مالک + حسابدار | Open | اختیارات مالی و کنترل تقلب |
+| DEC-015 | روش تخصیص وصولات به فاکتورها (FIFO پیش‌فرض) | مالی | Open | گزارش دریافتنی سنی و تسویهٔ جزئی |
+| DEC-016 | posting صافی به‌صورت موقت تا تأیید مدل کسب‌وکار | مالی + حسابدار | Open | حساب دریافتنی/سود و زیان صافی |
 
 ## تصمیم‌های معماری/پلتفرم باز
 
 | ID | موضوع | مالک | وضعیت |
 |---|---|---|---|
-| ADR-001 | تأیید معماری نهایی UI/domain/persistence/reporting | مهندس مسئول | Proposed |
-| ADR-002 | ماتریس پشتیبانی و ساخت واقعی Windows 7 SP1 x64 | مهندس انتشار + مالک | Open |
-| ADR-003 | تقویم شمسی آفلاین و پیاده‌سازی تبدیل/آزمون | مسئول فنی | Open |
-| ADR-004 | سیاست نسخه schema و recovery/restore | مسئول فنی | Proposed |
+| ADR-001 | تأیید معماری نهایی UI/domain/persistence/reporting | مهندس مسئول | Accepted (2026-10-19) — `docs/architecture/ADR-0001-platform-and-runtime.md` |
+| ADR-002 | ماتریس پشتیبانی و ساخت واقعی Windows 7 SP1 x64 | مهندس انتشار + مالک | Open — تا آزمون روی W7، وضعیت `NOT VERIFIED ON TARGET OS` |
+| ADR-003 | تقویم شمسی آفلاین و پیاده‌سازی تبدیل/آزمون | مسئول فنی | Provisional — موتور آزمون‌شده، تأیید رسمی کسب‌وکار انجام نشده |
+| ADR-004 | سیاست نسخه schema و recovery/restore | مسئول فنی | Provisional — migration نسخه‌دار + backup/restore پیاده‌سازی شده |
+| ADR-005 | محل قراردادن `party_ref` (فقط خطوط دریافتنی/پرداختنی) | حسابدار | Provisional — نیازمند بازبینی حسابدار |
+
+## تصمیم‌های فنی پذیرفته‌شده (Technical, Accepted)
+
+این‌ها تصمیم‌های فنی مصوب‌شده در محدودهٔ ADR-0001 هستند؛ اثر تجاری ندارند ولی در traceability
+به آن‌ها ارجاع داده می‌شود.
+
+### TECH-001 — واحد پول
+- Status: Accepted (2026-10-19)
+- Decision: مبنای ذخیره `int` ریال؛ `۱ تومان = ۱۰ ریال`؛ `Decimal` فقط در مرز تبدیل؛ `float` ممنوع؛
+  واحد نمایش و واحد ورودی مستقل؛ واحد همیشه در گزارش/چاپ درج می‌شود.
+- Evidence: `desktop/sorting_os/core.py`، `desktop/tests/test_core.py` (T-MONEY-001..012)
+- Affected: FIN-MONEY-001..012
+
+### TECH-002 — تقویم شمسی آفلاین
+- Status: Accepted (پیاده‌سازی)، تأیید رسمی: Pending (ADR-003)
+- Decision: موتور تقویم درون‌برنامه‌ای با عدد روز صحیح؛ لنگر `1403-01-01 = 2024-03-20`؛ بازهٔ
+  پشتیبانی‌شدهٔ 1300–1500 هجری شمسی؛ بدون هیچ API شبکه‌ای.
+- Evidence: `desktop/sorting_os/core.py`، ۱۴ لنگر + رفت‌وبرگشت ۷۳٬۳۲۳ روزه بدون خطا
+- Affected: FIN-CORE-033
+
+### TECH-003 — قرارداد `party_ref`
+- Status: Provisional (ADR-005)
+- Decision: `party_ref` فقط روی خطوط حساب‌های دریافتنی/پرداختنی (1100/2000) نوشته می‌شود؛ خطوط
+  درآمد/هزینه/نقد بدون `party_ref` هستند تا ماندهٔ طرف از دفترکل درست بازسازی شود.
+- Evidence: `desktop/sorting_os/services/ledger.py`، `desktop/tests/test_finance.py`
+- Affected: FIN-CORE-014، RPT-FIN-06
+
+### TECH-004 — تراکنش و مهاجرت
+- Status: Accepted (2026-10-19)
+- Decision: هر نوشتن در `BEGIN IMMEDIATE` + تراکنش؛ migration نسخه‌دار در `schema_meta` و اجرای
+  تراکنشی هر نسخه؛ `PRAGMA foreign_keys=ON` و `busy_timeout`.
+- Evidence: `desktop/sorting_os/db.py`، `desktop/sorting_os/migrations.py`، `desktop/tests/test_migrations.py`
+- Affected: FIN-CORE-012، FIN-CORE-015
+
+### TECH-005 — عدم posting خودکار فاکتور legacy
+- Status: Accepted (2026-10-19)
+- Decision: فاکتور با `amount_rial IS NULL` (دادهٔ legacy) قابل posting نیست و نباید در گزارش
+  مالی وارد شود؛ مادهٔ «قطعی» صرفاً وضعیت عملیاتی است و سند مالی نمی‌سازد.
+- Evidence: `desktop/sorting_os/services/ledger.py`، `desktop/tests/test_migrations.py`
+- Affected: FIN-MONEY-012، DEC-013
+
+### TECH-006 — شناسنامهٔ تخصیص وصولات
+- Status: Provisional (DEC-015)
+- Decision: تخصیص FIFO در سطح طرف حساب (`receipts-fifo-v1`)؛ مقدار آن در خروجی گزارش درج می‌شود.
+- Evidence: `desktop/sorting_os/services/reporting.py:receivables_aging`
+- Affected: RPT-FIN-07
 
 ## قاعده
 
